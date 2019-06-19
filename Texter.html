@@ -1,0 +1,668 @@
+
+<!-- saved from url=(0038)https://zaidalyafeai.github.io/texter/ -->
+<html lang="en" class="cye-disabled cye-nm">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Access-Control-Allow-Origin" content="*" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0, minimum-scale=0.5, maximum-scale=1.5, user-scalable=no"/>
+<title>Mnist+</title>
+<!-- <script type="text/javascript" async="" src="./Texter_files/latest.js"></script> -->
+ <link rel="stylesheet" href="./Texter_files/bootstrap.min.css">
+ <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"></link> -->
+
+<!-- jQuery library -->
+<script src="./Texter_files/jquery.min.js"></script>
+
+<!-- Popper JS -->
+<script src="./Texter_files/popper.min.js"></script>
+
+<!-- <script src="./Texter_files/require.js"></script> -->
+
+<!-- Latest compiled JavaScript -->
+<script src="./Texter_files/bootstrap.min.js"></script>
+	
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"> </script>
+<!-- <script src="./Texter_files/tfjs@latest"> </script> -->
+
+
+<!-- <script type="text/javascript" -->
+   <!-- src="http://cdn.mathjax.org/mathjax/latest/MathJax.js"> -->
+<!-- </script> -->
+<!-- <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script> -->
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script src="./Texter_files/fabric.js"></script>
+<!-- <style id="nightModeStyle"> -->
+<!-- html.cye-enabled.cye-nm:not(*:-webkit-full-screen) body, -->
+ <!-- html.cye-enabled.cye-nm:not(*:-webkit-full-screen) #cye-workaround-body {-webkit-filter:contrast(91%) brightness(84%) invert(1);} -->
+<!-- </style> -->
+<!-- <style id="cyebody">html.cye-enabled.cye-lm body{background-color:#cce8cf !important;border-color:rgb(51, 58, 51) !important;background-image:none !important;color:#000000  !important}</style> -->
+<!-- <style id="cyediv">html.cye-enabled.cye-lm div{background-color:#cce8cf !important;border-color:rgb(51, 58, 51) !important;background-image:none !important;color:#000000  !important}</style><style id="cyetable">html.cye-enabled.cye-lm th{background-color:#cce8cf !important;border-color:rgb(51, 58, 51) !important;background-image:none !important;color:#000000  !important}html.cye-enabled.cye-lm td{background-color:#cce8cf !important;border-color:rgb(51, 58, 51) !important;background-image:none !important;color:#000000  !important}</style><style id="cyetextInput">html.cye-enabled.cye-lm input[type=text]{background-color:#cce8cf !important;border-color:rgb(51, 58, 51) !important;background-image:none !important;color:#000000  !important}html.cye-enabled.cye-lm textarea{background-color:#cce8cf !important;border-color:rgb(51, 58, 51) !important;background-image:none !important;color:#000000  !important}</style><style id="cyeselect">html.cye-enabled.cye-lm select{background-color:#cce8cf !important;border-color:rgb(51, 58, 51) !important;background-image:none !important;color:#000000  !important}</style><style id="cyeul">html.cye-enabled.cye-lm ul{background-color:#cce8cf !important;border-color:rgb(51, 58, 51) !important;background-image:none !important;color:#000000  !important}</style><style id="cyeChangeByClick">html.cye-enabled.cye-lm .cye-lm-tag,html.cye-enabled.cye-lm.cye-lm-tag{background-color:#cce8cf !important;border-color:rgb(51, 58, 51) !important;background-image:none !important;color:#000000  !important}</style><style></style> -->
+
+
+<script type="text/x-mathjax-config">
+	MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+</script>
+
+<script>
+//set the table with predictions 	  
+function setTable(top5, probs)
+{
+     
+   for (var i = 0; i < top5.length; i++) { 
+    let sym = document. getElementById('sym'+(i+1))
+    let tex = document. getElementById('tex'+(i+1))
+    
+    sym.innerHTML = '$$ \\Huge{'+top5[i].r+'}$$'
+    tex.innerHTML = top5[i].s
+   } 
+   //render MathJax 
+   MathJax.Hub.Queue(["Typeset",MathJax.Hub,this.formula]);
+}
+ //prepare the drawing canvas 
+$(function () {
+	<!-- console.log('function') -->
+    canvas  = new fabric.Canvas('canvas');
+    canvas.backgroundColor = '#ffffff';
+    canvas.isDrawingMode= 1;
+	<!-- canvas.setWidth(600) -->
+    canvas.freeDrawingBrush.color = "black";
+    canvas.freeDrawingBrush.width = 10;
+    canvas.renderAll();
+    canvas.on('mouse:up', function(e){getFrame()});
+    canvas.on('mouse:move', function(e){recordCoor(e)});
+})
+	  
+//record the current drawing coordinates 	  
+function recordCoor(event)
+{
+  var pointer = canvas.getPointer(event.e);
+  var posX = pointer.x;
+  var posY = pointer.y;
+  coodrs.push(pointer) 
+}
+	  
+//get the best bounding box by trimming around the trimming   
+function getMinBox(){
+   let minX = 0;
+   let minY = 0;
+   let maxX = 300
+   let maxY = 300; 
+	
+   var coorX = coodrs.map(function(p) {return p.x});
+   var coorY = coodrs.map(function(p) {return p.y});
+
+   var min_coords = {
+    x : Math.min.apply(null, coorX),
+    y : Math.min.apply(null, coorY)
+   }
+   var max_coords = {
+    x : Math.max.apply(null, coorX),
+    y : Math.max.apply(null, coorY)
+   }
+   return {
+    min : min_coords,
+    max : max_coords
+   }
+}
+	  
+//get the current frame of the canvas 	  	  
+function getFrame()
+{
+    const ctx = canvas.getContext("2d");
+	const dpi = window.devicePixelRatio
+	<!-- console.log(dpi) -->
+    //get the minimum bounding box
+    <!-- const mbb = getMinBox() -->
+    <!-- imgData = ctx.getImageData(mbb.min.x, mbb.min.y, mbb.max.x - mbb.min.x, mbb.max.y - mbb.min.y); -->
+	imgData = ctx.getImageData(0*dpi, 0*dpi, 300*dpi, 300*dpi);
+
+	var pixeldata = imgData.data; 
+	<!-- console.log(imgData.data) -->
+	for(var i=0,len = pixeldata.length ;i<len;i+=4){ 
+		var gray =Math.floor(( 0.299*imgData.data[i] + 0.587*imgData.data[i+1] + 0.114*imgData.data[i+2]));//平均值灰度算法 
+		imgData.data[i] = gray; 
+		imgData.data[i+1] = gray; 
+		imgData.data[i+2] =gray
+	}
+	<!-- console.log(imgData) -->
+	
+    //get the predictions, top 5 
+    const pred = model.predict(preprocess(imgData)).dataSync()
+	<!-- console.log(pred) -->
+    const indices = findIndicesOfMax(pred, 5)
+	<!-- console.log(indices) -->
+    const probs  = findTopValues(pred, 5)
+    const symbols1 = getSymbols(indices)
+    //set the table 
+    setTable(symbols1, probs)
+   
+}
+//get the latex symbols by indices 
+function getSymbols(indices)
+{
+    var outp = []
+    for (var i= 0 ; i < indices.length ; i++)
+        outp[i] = symbols[indices[i]]
+	<!-- console.log(symbols) -->
+    return outp
+}
+	  
+//load the symbols 	  
+async function loadDict()
+{
+  await $.ajax({
+  <!-- url: 'https://zaidalyafeai.github.io/texter/symbols.csv', -->
+  url: 'https://hed115599.github.io/model/Mnist_my/symbols2.csv',
+  <!-- url: 'http://10.37.1.116/Files/symbols.csv', -->
+  dataType: 'text',}).done(success);
+}
+
+//get indices of the top probs
+function findIndicesOfMax(inp, count) {
+    var outp = [];
+    for (var i = 0; i < inp.length; i++) {
+        outp.push(i); // add index to output array
+        if (outp.length > count) {
+            outp.sort(function(a, b) { return inp[b] - inp[a]; }); // descending sort the output array
+            outp.pop(); // remove the last index (index of smallest element in output array)
+        }
+    }
+    return outp;
+}
+	  
+//find the top 5 predictions 
+function findTopValues(inp, count){
+    var outp = [];
+    let indices = findIndicesOfMax(inp, count)
+    // show 5 greatest scores
+    for (var i = 0; i < indices.length; i++)
+        outp[i] = inp[indices[i]]
+    return outp
+}
+	  
+//load the symbols table 
+function success(data)
+{
+    let lst = data.split(/\r?\n|\r/)
+    for(var i = 1 ; i < lst.length -1 ; i++)
+    {
+        let row = lst[i].split(',') 
+        symbols[i-1] = {r:row[0], s:row[1]}
+    }
+    
+    MathJax.Hub.Queue(["Typeset",MathJax.Hub,this.formula]);
+}
+
+//preprocess the data 
+function preprocess(imgData)
+{
+return tf.tidy(()=>{
+    let tensor = tf.browser.fromPixels(imgData)
+	<!-- console.log(tensor.shape) -->
+	<!-- tensor.print() -->
+	<!-- resized = tf.image.resizeBilinear(tensor, [32, 32]).toFloat() -->
+    <!-- const sliced   = resized.slice([0, 0, 1], [32, 32, 1]) -->
+    resized = tf.image.resizeBilinear(tensor, [28, 28]).toFloat()
+    const sliced   = resized.slice([0, 0, 1], [28, 28, 1])
+	<!-- sliced.print(); -->
+    const offset = tf.scalar(255.0);
+    // Normalize the image 
+    const normalized = sliced.div(offset);
+	<!-- normalized.print() -->
+  
+    //We add a dimension to get a batch shape 
+    const batched = normalized.expandDims(0)
+    return batched
+})
+}
+	  
+//load the model 
+async function loadModel()
+{
+    <!-- model = await tf.loadLayersModel('https://zaidalyafeai.github.io/texter/model/model.json') -->
+	<!-- model = await tf.loadLayersModel('localstorage://web_model//weights_manifest') -->
+	<!-- model = await tf.loadLayersModel('file://web_model\weights_manifest.json') -->
+	<!-- model = await tf.loadLayersModel('http://10.37.1.116/Files/model.json') -->
+	<!-- model = await tf.loadLayersModel('./Model/Mnist_my/model.json') -->
+	model = await tf.loadLayersModel('https://hed115599.github.io/model/Mnist_my/model.json')
+    //warm up 
+    model.predict(tf.ones([1,28,28,1]))
+	<!-- model.predict(tf.ones([1,32,32,1])) -->
+	console.log('Model loaded')
+    allowDrawing()
+    await loadDict()
+}
+	  
+//allow drawing on canvas 	  
+function allowDrawing(){
+    canvas.isDrawingMode= 1;
+    document.getElementById('status').innerHTML ='Model Loaded';
+    $('button').prop('disabled', false); 
+    var slider = document.getElementById('myRange');
+    slider.oninput = function(){canvas.freeDrawingBrush.width = this.value;};
+}	  
+function erase()
+{
+    canvas.clear();
+    canvas.backgroundColor = '#ffffff';
+    coords = [] ;
+}
+
+var my_host = window.location.host;
+
+loadModel()
+	  
+var model;
+var canvas;
+var symbols = [{}];
+var canvas; 
+var coodrs = [];
+var euclid_data=[];
+
+
+function Select(e){
+	<!-- console.log(e.getAttribute("id")) -->
+	bt=e.getAttribute("id")
+	index=bt.substr(bt.length-1,1)
+	<!-- console.log(index) -->
+	
+	console.log(document.getElementById("tex"+index).innerHTML)
+	var a=document.getElementById("tex"+index).innerHTML
+	<!-- console.log(a) -->
+	document.getElementById('input1').value=document.getElementById('input1').value+a
+	erase()
+}
+
+function save(){
+	var c=document.getElementById("canvas");
+	var svaeHref = document.getElementById("save_href");
+	var img = document.getElementById("save_img");
+	var tempSrc = c.toDataURL("image/png");
+	svaeHref.href=tempSrc;
+	img.src=tempSrc; 
+}
+
+
+function quality_factor(num) {
+    var regex = new RegExp(/^[0-9]*[1-9][0-9]*$/);
+    if (num == 1) return "1";
+    if (num == 2) return "2";
+    if (num == 3) return "3";
+    if (num == 4) return "2*2";
+    var i = 2;
+    var handle = num;
+    var arr = new Array();
+    while (i < handle) {     //i小于num则一直循环下去，直到i=num为止
+        var result = handle / i;
+        if (regex.test(result)) { //除2结果为整数
+            arr.push(i);
+            i = 2;
+            handle = result;
+        } 
+		else {
+            i++;
+        }
+        if (i == handle) {  //判断是否要结尾
+            arr.push(handle)
+            break;
+        }
+    }
+	<!-- console.log(arr) -->
+    //打印结果
+    var str = String();
+    for (i = 0; i < arr.length; i++) {
+        str += arr[i];
+        if (i != arr.length - 1)
+            str += '*';
+    }
+	
+	const map = arr.reduce((m, x) => m.set(x, (m.get(x) || 0) + 1), new Map())
+	<!-- console.log(map) -->
+
+	// 去重数组
+	const newArr = Array.from(map.keys())
+
+	//某个次数
+	<!-- console.log(map.get(newArr[0])) -->
+	
+	var latex
+	for(let i=0;i<newArr.length;i++){
+		if(i==0)
+			latex=String(newArr[0])+'^'+String(map.get(newArr[0]))
+		else
+			latex=latex+'\\times '+String(newArr[i])+'^'+String(map.get(newArr[i]))
+	}
+	
+	let text1 = document. getElementById('text1')
+    
+    text1.innerHTML = '$$ '+latex+'$$'
+	MathJax.Hub.Queue(["Typeset",MathJax.Hub,this.formula]);
+	
+    return str;
+}
+
+function Submit(){
+	let num=document.getElementById('input1').value
+	console.log(quality_factor(num))
+	document.getElementById('input2').value=quality_factor(num)
+}
+
+function Clear(){
+	document.getElementById('input1').value=""
+	document.getElementById('input2').value=""
+	document.getElementById('text1').innerHTML=""
+}
+
+function New_game(){
+	var to_del=document.getElementById('tbody1')
+	while(to_del.hasChildNodes()) //当div下还存在子节点时 循环继续 
+    {
+        to_del.removeChild(to_del.firstChild); 
+    }
+	<!-- console.log(document.getElementsByTagName('tr')) -->
+	<!-- if(euclid_data.length!=0) -->
+	<!-- document.getElementById('tbody1').removeChild(document.getElementsByTagName('my_tr')) -->
+	var row=document.createElement('tr')
+	var td1=document.createElement('td')
+	var td2=document.createElement('td')
+	td1.style.cssText="text-align:center"
+	td2.style.cssText="text-align:center"
+	euclid_data=[]
+	tmp1=Math.round(100*Math.random())
+	tmp2=Math.round(100*Math.random())
+	while(gcd(tmp1,tmp2)==1 || tmp1==tmp2){
+		tmp1=Math.round(100*Math.random())
+		tmp2=Math.round(100*Math.random())
+	}
+	euclid_data.push(tmp1)
+	euclid_data.push(tmp2)
+	td1.innerHTML=tmp1
+	td2.innerHTML=tmp2
+	row.appendChild(td1)
+	row.appendChild(td2)
+	document.getElementById('tbody1').appendChild(row)
+}
+
+function gcd(a,b){
+	if(b==0)
+		return a;
+     return gcd(b,a%b)
+}
+
+function is_valid(user_input){
+	var re = /^[0-9]+.?[0-9]*$/;
+	<!-- console.log(Math.max(euclid_data[0],euclid_data[1])) -->
+	<!-- console.log(user_input) -->
+	if(user_input>=Math.max(euclid_data[0],euclid_data[1])){
+		alert('Invalid value')
+		return false
+	}
+	if(!re.test(user_input)){
+		alert('Not a number')
+		return false
+	}
+	for(i=0; i<euclid_data.length; i++){
+		for(j=i+1; j<euclid_data.length; j++){
+			temp=Math.abs(euclid_data[i]-euclid_data[j])
+			if(temp==user_input)
+				return true
+		}
+	}
+	alert('Check your calculation')
+	return false
+}
+
+function AI(){
+	<!-- console.log(euclid_data) -->
+	for(i=0; i<euclid_data.length; i++){
+		for(j=i+1; j<euclid_data.length; j++){
+			temp=Math.abs(euclid_data[i]-euclid_data[j])
+			if(euclid_data.indexOf(temp)==-1)
+				return temp
+		}
+	}
+	return ''
+}
+
+function Add(){
+	if(euclid_data.length<1)
+		alert('Start new game first')
+	else{
+		var row=document.createElement('tr')
+		var td1=document.createElement('td')
+		var td2=document.createElement('td')
+		td1.style.cssText="text-align:center"
+		td2.style.cssText="text-align:center"
+		new_data=Number(document.getElementById('input1').value)
+		if(is_valid(new_data)){
+			euclid_data.push(new_data)
+			AI_data=AI()
+			document.getElementById('Result').innerHTML="AI is thinking..."
+			
+			td1.innerHTML=new_data
+			row.appendChild(td1)
+			document.getElementById('tbody1').appendChild(row)
+			setTimeout(function(){
+				document.getElementById('Result').innerHTML="Result"
+				
+				td2.innerHTML=AI_data
+				
+				row.appendChild(td2)
+				document.getElementById('tbody1').appendChild(row)
+				document.getElementById('input1').value=""
+				if(AI_data=='')
+					alert('You win')
+				else
+					euclid_data.push(AI_data)
+			},3000); 
+			
+		}
+	}
+	
+	
+}
+
+</script>
+
+</head>
+<!-- <div id="cyeBlackMaskLayer" style="background-color: rgb(19, 19, 19); position: fixed; width: 1980px; height: 1080px; z-index: -2147483648;"> -->
+<!-- </div> -->
+<body>
+
+
+
+<div id="MathJax_Message" style="display: none;"></div>
+
+<style>
+.table tbody tr td{
+	font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace; 
+}
+ table thead tr th {
+	font-famiy : Helvetica, Arial, sans-serif;
+	font-size: 24px;
+	font-weight: 400;
+	line-height: 26.4px;
+}
+.sym {
+      font-size :16px;
+	  text-align:center;
+	  vertical-align:middle;
+}
+.forbt{
+	font-size :14px;
+	text-align:center;
+	vertical-align:middle;
+}
+
+.bt{
+	height:30px;
+	width:80px;
+}
+
+<!-- .tex{ -->
+	<!-- padding-top: 15px -->
+<!-- } -->
+	  
+.slider {
+    -webkit-appearance: none;
+    width: 230px;
+    height: 2px;
+    border-radius: 5px;
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+}
+
+.slider:hover {
+    opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #007AFF;
+    cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #007AFF;
+    cursor: pointer;
+}
+</style>
+
+
+<nav class="navbar navbar-expand-sm bg-light navbar-light">
+  <!-- Brand/logo -->
+  <a class="navbar-brand" href="https://zaidalyafeai.github.io/texter/#"><h1>Mnist+</h1></a>
+</nav>
+<div class="container-fluid"> 
+
+<!-- <blockquote class="blockquote text-justify" style="margin:30px;"> -->
+<p>This is a simple tool that uses Tensorflow (Tensorflow.js) to train the CNN model to recognize mathematical symbols and numbers. 
+The CNN was trained to recognize "0-9" and basic operater("+", "-", "*", "/", "(", ")"). The table on the right will show the top 5 predictions. 
+</p>
+    <!-- <footer class="blockquote-footer">ZAID ALYAFEAI</footer> -->
+  <!-- </blockquote> -->
+</div>
+
+
+<div class="row">
+	<div class="col" style="margin-left:40px;">
+		<h4 id="status">Loading Model... </h4>	  
+		<div class="canvas-container" style="width: 300px; height: 300px; position: relative; user-select: none;">
+			<canvas id="canvas" width="300" height="300" class="canvas lower-canvas" style="border: 1px solid rgb(185, 191, 201); margin-top: 25px; position: absolute; width: 300px; height: 300px; left: 0px; top: 0px; touch-action: none; user-select: none;"></canvas>
+			<!-- <canvas class="upper-canvas canvas" width="300" height="300" style="border: 1px solid rgb(185, 191, 201); margin-top: 25px; position: absolute; width: 300px; height: 300px; left: 0px; top: 0px; touch-action: none; user-select: none; cursor: default;"></canvas> -->
+		</div>
+		<div class="btn-group" style="margin-top:40px; ">
+			<input type="range" min="5" max="20" value="10" class="slider" id="myRange" style="margin-top:20px;">
+			<button type="button" class="btn btn-outline-primary" onclick="erase()" style="margin-left:10px;" disabled="">Clear</button>
+		</div> 
+	</div>
+
+	<div class="col" style="margin-left:40px;">
+		<table class="table text-center table-borderless table-sm" style="margin-top:50px;">
+			<tbody>
+				<tr>
+				  <td id="sym1" class="sym"></td>
+				  <td id="tex1" class="forbt"></td>
+				  <!-- <td class="forbt"><button id="bt1">click</button></td> -->
+				  <td align="left" style="vertical-align:middle;"><button class="btn btn-outline-primary" id="bt1" onclick="Select(this)">Choose</button></td>
+				</tr>
+				<tr>
+				  <td id="sym2" class="sym"></td>
+				  <td id="tex2" class="forbt"></td>
+				  <td align="left" style="vertical-align:middle;"><button class="btn btn-outline-primary" id="bt2" onclick="Select(this)">Choose</button></td>
+				  
+				</tr>
+				<tr>
+				  <td id="sym3" class="sym"></td>
+				  <td id="tex3" class="forbt"></td>
+				  <td align="left" style="vertical-align:middle;"><button class="btn btn-outline-primary" id="bt3" onclick="Select(this)">Choose</button></td>
+
+				</tr>
+				<tr>
+				  <td id="sym4" class="sym"></td>
+				  <td id="tex4" class="forbt"></td>
+				  <td align="left" style="vertical-align:middle;"><button class="btn btn-outline-primary" id="bt4" onclick="Select(this)">Choose</button></td>
+				  
+				</tr>
+				<tr>
+				  <td id="sym5" class="sym"></td>
+				  <td id="tex5" class="forbt"></td>
+				  <td align="left" style="vertical-align:middle;"><button class="btn btn-outline-primary" id="bt5" onclick="Select(this)">Choose</button></td>
+				  
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	
+	
+	<div class='col' style="margin-left:40px;">
+		<br>
+		<div style="text-align:bottom;height:70">
+			<p style="height:15px;vertical-align:bottom">Output: </p>
+			<input type="text" id="input1"></input>
+		</div>
+		<br>
+		<h4 id="status">1. Prime factor decomposition</h4>
+		<div>
+			<p style="height:15px">Result: </p>
+			<p id="text1"></p>
+			<input type="text" id="input2" readonly="readonly"></input>
+			
+			<button class="btn btn-outline-primary" onclick="Submit()" >Submit</button>
+			<button class="btn btn-outline-primary" onclick="Clear()" >Clear</button>
+			<!-- <input type="submit" value="Submit" /></input> -->
+		</div>
+	</div>
+	
+	<div class='col' style="margin-left:40px;">
+		<br>
+		<h4 id="status">2. Euclid game</h4>
+		<div>
+			<p style="height:15px" id="Result">Result: </p>
+			<!-- <input type="text" id="input3" readonly="readonly"></input> -->
+			<button class="btn btn-outline-primary" onclick="Add()" >Add</button>
+			<button class="btn btn-outline-primary" onclick="New_game()" >New game</button>
+			<table border="1">
+				<thead>
+					<tr>
+						<th width='60' style="text-align:center">Yours</th>
+						<th width='60' style="text-align:center">AI</th>
+					</tr>
+				</thead>
+				
+				<tbody id='tbody1'>
+				
+				</tbody>
+				
+			</table>
+			<!-- <input type="submit" value="Submit" /></input> -->
+		</div>
+	</div>
+	
+</div>
+<br>
+<br>
+<div class="row">
+	
+	
+	<div class="col">
+			<!-- <a href="" download="canvas_love.png" id="save_href"></a> -->
+			<!-- <button class="button-balanced" id="save" onclick="save()">save</button> -->
+			<!-- <img src="" id="save_img" width="300",height="300"></img> -->
+	</div>
+</div>
+
+ </body>
+ <div id="cye-workaround-body" style="position: absolute; left: 0px; top: 0px; z-index: -2147483646; background: none 0% 0% / auto repeat scroll padding-box border-box rgb(255, 255, 255); height: 873px; width: 1935px;"></div>
+ <div id="cye-workaround-body-image" style="position: absolute; left: 0px; top: 0px; z-index: -2147483645; background: none 0% 0% / auto repeat scroll padding-box border-box rgba(0, 0, 0, 0); height: 873px; width: 1935px;"></div>
+ </html>
