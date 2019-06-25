@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>基于TensorFlow.js的SVM</title>
+	<!-- <script src="https://d3js.org/d3.v5.min.js"></script> -->
+    <script src="../static/d3/d3.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"> </script>
+    <style>
+        /* 清除样式 */
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        /* 坐标样式 */
+        .axis path, .axis line{
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+        .axis text{
+            font-family: sans-serif;
+            font-size: 11px;
+        }
+        /* 功能按钮 */
+        .btnWrap{
+            margin-left: 140px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="content">
+    </div>
+    <div class="btnWrap">
+        <!-- <button type="button" onclick="update();">更新</button> -->
+        <button type="button" onclick="add();">增加</button>
+        <button type="button" onclick="sub();">减少</button>
+		<button type="button" onclick="draw_Newline();">训练</button>
+    </div>
+
+    <script>
+        <!-- var dataset = [[0.5, 0.5],[0.7, 0.8],[0.4, 0.9], -->
+                <!-- [0.11, 0.32],[0.88, 0.25],[0.75, 0.12], -->
+                <!-- [0.5, 0.1],[0.2, 0.3],[0.4, 0.1]]; -->
+		var xdataset=[[2, 3],[2, 1],[1,2.7]];
+		var ydataset=[1,-1,1];
+		var c_color={"-1": "red","1":"blue"}
+		<!-- console.log(c_color[-1]) -->
+        var width = 400;    // 可视区域宽度
+        var height = 400;   // 可视区域高度
+
+        var xAxisWidth = 300;   // x轴宽度
+        var yAxisWidth = 300;   // y轴宽度
+
+        var padding = {top: 20, right: 20, bottom:20, left:50};
+
+        var svg = d3.select("body").select("#content")
+                .append("svg")
+                .attr("width", width).attr("height", height);
+
+        /*定义比例尺*/
+        var xScale = d3.scaleLinear()
+                .domain([0, 4])
+                .range([0, xAxisWidth]);
+
+        var yScale = d3.scaleLinear()
+                .domain([0, 4])
+                .range([0, yAxisWidth]);
+
+        /* 绘制圆点 */
+        function drawCircle(){
+            var circleUpdate = svg.selectAll("circle").data(xdataset);
+
+            // update处理
+            circleUpdate.transition().duration(500)
+                    .attr("cx", function(d){
+                        return padding.left + xScale(d[0]);
+                    })
+                    .attr("cy", function(d, i){
+                        return height - padding.bottom - yScale(d[1]);
+                    })
+                    .attr("r", 5)
+					.attr("fill",function(d,i){
+						return c_color[ydataset[i]]
+					})
+
+            // enter处理
+            circleUpdate.enter().append("circle")
+                    .attr("cx", function(d){
+                        return padding.left;
+                    })
+                    .attr("cy", function(d, i){
+                        return height - padding.bottom;
+                    })
+                    .attr("r", 5)
+					.attr("fill",function(d,i){
+						return c_color[ydataset[i]]
+					})
+                    .transition().duration(500)
+                    .attr("cx", function(d, i){
+                        return padding.left + xScale(d[0]);
+                    })
+                    .attr("cy", function(d, i){
+                        return height - padding.bottom - yScale(d[1]);
+                    })
+					.attr("fill",function(d,i){
+						return c_color[ydataset[i]]
+					})
+
+            // exit处理
+            circleUpdate.exit()
+                    .transition().duration(500)
+                    .attr("fill", "white")
+                    .remove();
+
+        }
+
+        /* 添加坐标轴 */
+        function drawScale(){
+            var xAxis = d3.axisBottom().scale(xScale);
+            yScale.range([yAxisWidth, 0]);  // 重新设置y轴比例尺的值域,与原来的相反
+            var yAxis = d3.axisLeft().scale(yScale);
+
+            svg.append("g").attr("class", "axis")
+                    .attr("transform", "translate("+ padding.left +","+ (height - padding.bottom) +")")
+                    .call(xAxis);
+
+            svg.append("g").attr("class", "axis")
+                    .attr("transform", "translate("+ padding.left +","+ (height - padding.bottom - yAxisWidth) +")")
+                    .call(yAxis);
+
+            // 绘制完比例尺,还原比例尺y轴值域
+            yScale.range([0, yAxisWidth]);
+        }
+
+        // 初始化
+        window.addEventListener("load", function(){
+            drawCircle();
+            drawScale();
+			draw_Newline();
+        });
+
+        var toFixed = Number.prototype.toFixed;
+        /* 更新 */
+        function update(){
+            for(var i = 0, len = xdataset.length; i < len; i++){
+                xdataset[i][0] = +toFixed.call(Math.random(), 2);
+                xdataset[i][1] = +toFixed.call(Math.random(), 2);
+            }
+            drawCircle();
+        }
+
+        /* 增加 */
+        function add(){
+			if (Math.random()>0.5){
+				xdataset.push([+toFixed.call(Math.random()-0.5+1, 2), +toFixed.call(Math.random()-0.5+3, 2)]);
+				ydataset.push(1);
+			}
+            else{
+				xdataset.push([+toFixed.call(Math.random()-0.5+3, 2), +toFixed.call(Math.random()-0.5+1, 2)]);
+				ydataset.push(-1);
+			}
+            drawCircle();
+			//draw_Newline();
+        }
+
+        /* 删除 */
+        function sub(){
+            xdataset.pop();
+			ydataset.pop();
+            drawCircle();
+        }
+		
+		<!-- const xs= tf.tensor2d(xdataset); -->
+		<!-- //xs.print() -->
+		
+		<!-- const ys=tf.tensor1d(ydataset); -->
+		<!-- const w_ini=tf.tensor2d([[Math.random()],[Math.random()]]) -->
+		<!-- const w = tf.variable(w_ini); -->
+		<!-- const b = tf.variable(tf.scalar(Math.random())); -->
+		const w_ini=tf.tensor2d([[Math.random()],[Math.random()]])
+		let w = tf.variable(w_ini);
+		let b = tf.variable(tf.scalar(Math.random()));
+		
+		function L(x,y){
+			temp=y.mul(w.transpose().matMul(x.transpose()).add(b)).mul(-1).add(1)
+			temp2=temp.maximum(tf.scalar(0))
+			return temp2.sum().add(w.norm().mul(0.001));
+		}
+		<!-- temp=L(xs,ys); -->
+		
+		function train(xs, ys, numIterations = 5000) {
+
+		  const learningRate = 0.001;
+		  const optimizer = tf.train.adam(learningRate);
+
+		  for (let iter = 0; iter < numIterations; iter++) {
+			optimizer.minimize(() => {
+			  //const predsYs = predict(xs);
+			  return L(xs, ys);
+			});
+			if(iter%1000==0){
+				console.log(iter)
+				console.log(w.dataSync())
+				//update_line(w,b)
+			}
+			
+		  }
+		}
+		//train(xs,ys)
+		
+		function draw_Newline(){
+		
+			const xs= tf.tensor2d(xdataset);
+			const ys=tf.tensor1d(ydataset);
+			const w_ini=tf.tensor2d([[Math.random()],[Math.random()]])
+			console.log(w_ini.dataSync())
+			w.assign(w_ini);
+			b.assign(tf.scalar(Math.random()));
+			//temp=L(w,b,xs,ys);
+			train(xs,ys)
+			
+			update_line()
+		}
+		function update_line(){
+			var w1=w.dataSync()["0"]
+			var w2=w.dataSync()["1"]
+			var x1=0
+			var x2=4
+			var y1=(-1*w1*(x1)-b.dataSync()["0"])/w2
+			var y2=(-1*w1*(x2)-b.dataSync()["0"])/w2
+			svg.select("#my")
+			.remove()
+			
+			var line = d3.line()
+			.x(function(d) {
+			  return padding.left + xScale(d.x)//xScale(d.x)
+			})
+			.y(function(d) {
+			  return height - padding.bottom -yScale(d.y);
+			})
+			
+			svg.append('path')
+			.attr('id','my')
+			.attr('class', 'line')
+			.attr('d', line([{x: x1, y: y1}, {x: x2, y: y2}]))
+			.attr("stroke", "black")
+			.attr("stroke-width", "2px")
+		}
+		
+		<!-- var w1=w.dataSync()["0"] -->
+		<!-- console.log("w1") -->
+		<!-- console.log(w1) -->
+		<!-- var w2=w.dataSync()["1"] -->
+		<!-- console.log("w2") -->
+		<!-- console.log(w2) -->
+		<!-- var x1=0 -->
+		<!-- var x2=4 -->
+		<!-- var y1=(-1*w1*(x1)-b.dataSync()["0"])/w2 -->
+		<!-- var y2=(-1*w1*(x2)-b.dataSync()["0"])/w2 -->
+		<!-- console.log(y1,y2) -->
+		<!-- console.log(x1,x2) -->
+		
+		//console.log(b.toFloat())
+		//console.log(values)
+		
+		//console.log(t3)
+		//console.log(tt)
+		//console.log(tt.__proto__[Promise]["[[PromiseStatus]]"])
+		//console.log(tt["Float32Array(2)"])
+		//tt.print();
+		//re=w.get(1).print();
+		//["[[PromiseValue]]"]["0"]
+		
+		//b.print();
+		//console.log(b.values)
+		<!-- svg.append("line") -->
+            <!-- .attr("x1", 200) -->
+            <!-- .attr("y1", 200) -->
+            <!-- .attr("x2", 100) -->
+            <!-- .attr("y2", 100) -->
+            <!-- .attr("stroke", "black") -->
+            <!-- .attr("stroke-width", "2px"); -->
+			
+		<!-- var line = d3.line() -->
+			<!-- .x(function(d) { -->
+			  <!-- return padding.left + xScale(d.x)//xScale(d.x) -->
+			<!-- }) -->
+			<!-- .y(function(d) { -->
+			  <!-- return height - padding.bottom -yScale(d.y); -->
+			<!-- }) -->
+			<!-- // 选择线条的类型 -->
+			<!-- //.curve(d3.curveBasis); -->
+		<!-- // 添加path元素，并通过line()计算出值来赋值 -->
+		<!-- svg.append('path') -->
+			<!-- .attr('id','my') -->
+			<!-- .attr('class', 'line') -->
+			<!-- .attr('d', line([{x: -1, y: 1}, {x: 1, y: -1}])) -->
+			<!-- .attr("stroke", "black") -->
+			<!-- .attr("stroke-width", "2px") -->
+
+		
+    </script>
+</body>
+</html>
