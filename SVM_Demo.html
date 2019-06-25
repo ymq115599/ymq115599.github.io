@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <title>基于TensorFlow.js的SVM</title>
 	<!-- <script src="https://d3js.org/d3.v5.min.js"></script> -->
-    <script src="../d3/d3.js"></script>
+	<link rel="stylesheet" href="src/jquery.mloading.css">
+	<script src="src/jquery-1.8.3.min.js"></script>
+	<script src="src/jquery.mloading.js"></script>
+    <script src="../static/d3/d3.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"> </script>
     <style>
         /* 清除样式 */
@@ -191,14 +194,13 @@
 		<!-- temp=L(xs,ys); -->
 		
 		function train(xs, ys, numIterations = 5000) {
+			const learningRate = 0.001;
+			const optimizer = tf.train.adam(learningRate);
 
-		  const learningRate = 0.001;
-		  const optimizer = tf.train.adam(learningRate);
-
-		  for (let iter = 0; iter < numIterations; iter++) {
-			optimizer.minimize(() => {
-			  //const predsYs = predict(xs);
-			  return L(xs, ys);
+			for (let iter = 0; iter < numIterations; iter++) {
+				optimizer.minimize(() => {
+				//const predsYs = predict(xs);
+				return L(xs, ys);
 			});
 			if(iter%1000==0){
 				console.log(iter)
@@ -211,7 +213,7 @@
 		//train(xs,ys)
 		
 		function draw_Newline(){
-		
+			$("body").mLoading("show");
 			const xs= tf.tensor2d(xdataset);
 			const ys=tf.tensor1d(ydataset);
 			const w_ini=tf.tensor2d([[Math.random()],[Math.random()]])
@@ -219,9 +221,16 @@
 			w.assign(w_ini);
 			b.assign(tf.scalar(Math.random()));
 			//temp=L(w,b,xs,ys);
-			train(xs,ys)
+			setTimeout(function(){
+				train(xs,ys)
+				update_line()
+			},500); 
 			
-			update_line()
+			<!-- train(xs,ys) -->
+			<!-- update_line() -->
+			setTimeout(function(){
+				$("body").mLoading("hide");
+			},1000); 
 		}
 		function update_line(){
 			var w1=w.dataSync()["0"]
@@ -247,6 +256,7 @@
 			.attr('d', line([{x: x1, y: y1}, {x: x2, y: y2}]))
 			.attr("stroke", "black")
 			.attr("stroke-width", "2px")
+			
 		}
 		
 		<!-- var w1=w.dataSync()["0"] -->
