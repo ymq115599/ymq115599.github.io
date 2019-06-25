@@ -1,6 +1,6 @@
 ## Welcome to GitHub Pages
 
-There, you can find some demo using TensorFlow (TensorFlow.js). 
+Here, you can find some demo using TensorFlow (TensorFlow.js). 
 
 
 
