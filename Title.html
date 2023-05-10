@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<meta charset="UTF-8">
+    <meta http-equiv="Access-Control-Allow-Origin" content="*">
+    <meta http-equiv="Access-Control-Allow-Methods" content="GET, POST, PUT, DELETE, OPTIONS">
+    <meta http-equiv="Access-Control-Allow-Headers" content="Content-Type, Authorization">
+    <meta http-equiv="Access-Control-Allow-Credentials" content="true">
+	<title>Title</title>
+<style>
+body {
+	background-color:black;
+    background-image: url("https://www.hed115599.tk/Index_files/banner1.jpg");
+    background-size: 100%;
+    background-repeat: repeat;
+	color:#00ffff;
+    font-weight: bold;
+}
+
+	
+.main_pc{
+	text-align: center; /*让div内部文字居中*/
+	border-radius: 20px;
+	width: 80%;
+	height: auto;
+	margin: auto;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+}
+
+.main_mobile{
+	text-align: center; /*让div内部文字居中*/
+	border-radius: 20px;
+	width: 80%;
+	height: auto;
+	margin: auto;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+}
+
+table {
+    border-collapse: collapse;
+    border: 2px black solid;
+    font: 12px sans-serif;
+}
+
+td {
+    border: 1px black solid;
+    padding: 5px;
+}
+	
+</style>
+
+</head>
+	
+<body>
+
+<div>
+
+<iframe src="https://drive.google.com/file/d/1LOqf0eyFvimgksqthNrrfCJW47PWY02L/preview" width="640" height="480" allow="autoplay"></iframe>
+
+</div>
+
+<script> //这串代码读取google的数据并且显示
+  let url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQNEQMl14ik7u_QFt7JGu6m3xdLlu3UvHjTrxMh4jubYVVZAyPaBmEkFOEOiaIu3d8YagkQYxFzql-1/pub?gid=674915525&single=true&output=csv"; // <<--- PASTE LINK HERE
+
+  // Get the data
+  fetch(url)
+    .then((resp) => resp.body)
+    .then((stream) => new Response(stream))
+    .then((response) => response.blob())
+    .then((blob) => {
+      blob.type = "text/csv";
+      return blob.text();
+    })
+    // turn csv into 2D array
+    .then((text) => csvTo2DArray(text))
+    // make a table
+    .then((tableArray) => makeTable(tableArray))
+    .catch((err) => console.error(err));
+
+  // turn the csv into a two-dimensional array
+  function csvTo2DArray(csv){
+    const rows = csv.split("\n")
+    const output = rows.map(col => col.split(','))
+    return output
+  }
+  
+  // use the two dimensional array to append a table to the web page.
+  function makeTable(tableArray){
+    const headers = tableArray.shift();
+    const rows = tableArray.slice(-10); // 只保留最后 10 行数据
+
+    let table = document.createElement('table')
+    let tableHeader = document.createElement('tr')
+    
+    headers.forEach(header => {
+      let headerElement = document.createElement('th')
+      headerElement.innerText = header
+      tableHeader.appendChild(headerElement)
+    })
+
+    table.appendChild(tableHeader)
+
+    rows.forEach(row => {
+      let rowElement = document.createElement('tr')
+      row.forEach(data => {
+        let dataElement = document.createElement('td')
+        dataElement.innerText = data
+        rowElement.appendChild(dataElement)
+      })
+      table.appendChild(rowElement)
+    })
+    
+    document.body.appendChild(table)
+  }
+</script>
+
+	
+</body>
+</html>
